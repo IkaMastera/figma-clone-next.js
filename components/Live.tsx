@@ -29,7 +29,13 @@ function Live() {
   }, []);
 
   return (
-    <div>
+    <div
+      onPointerMove={handlePointerMove}
+      onPointerLeave={handlePointerLeave}
+      onPointerDown={handlePointerDown}
+      className="h-[100vh] w-full flex justify-center items-center text-center"
+    >
+      <h1 className="text-5xl text-white">LiveBlocks Figma Clone</h1>
       <LiveCursors others={others} />
     </div>
   );
