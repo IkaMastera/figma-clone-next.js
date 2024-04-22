@@ -1,9 +1,16 @@
 import { useCallback, useEffect, useState } from "react";
 import LiveCursors from "./cursor/LiveCursors";
-import { useMyPresence, useOthers } from "@/liveblocks.config";
+import {
+  useBroadcastEvent,
+  useEventListener,
+  useMyPresence,
+  useOthers,
+} from "@/liveblocks.config";
 import CursorChat from "./cursor/CursorChat";
-import { CursorMode, CursorState, Reaction } from "@/types/type";
+import { CursorMode, CursorState, Reaction, ReactionEvent } from "@/types/type";
 import ReactionSelector from "./reaction/ReactionButton";
+import FlyingReaction from "./reaction/FlyingReaction";
+import useInterval from "@/hooks/useInterval";
 
 function Live() {
   const others = useOthers();
@@ -13,7 +20,47 @@ function Live() {
     mode: CursorMode.Hidden,
   });
 
-  const [reactions, setReactions] = useState<Reaction[]>([]);
+  const [reaction, setReaction] = useState<Reaction[]>([]);
+
+  const broadcast = useBroadcastEvent();
+
+  useInterval(() => {
+    if (
+      cursorState.mode === CursorMode.Reaction &&
+      cursorState.isPressed &&
+      cursor
+    ) {
+      setReaction((reactions) =>
+        reactions.concat([
+          {
+            point: { x: cursor.x, y: cursor.y },
+            value: cursorState.reaction,
+            timestamp: Date.now(),
+          },
+        ])
+      );
+
+      broadcast({
+        x: cursor.x,
+        y: cursor.y,
+        value: cursorState.reaction,
+      });
+    }
+  }, 150);
+
+  useEventListener((eventData) => {
+    const event = eventData.event as ReactionEvent;
+
+    setReaction((reactions) =>
+      reactions.concat([
+        {
+          point: { x: cursor.x, y: cursor.y },
+          value: event.value,
+          timestamp: Date.now(),
+        },
+      ])
+    );
+  });
 
   const handlePointerMove = useCallback((event: React.PointerEvent) => {
     event.preventDefault();
@@ -92,7 +139,7 @@ function Live() {
     };
   }, [updateMyPresence]);
 
-  const setReaction = useCallback((reaction: string) => {
+  const setReactions = useCallback((reaction: string) => {
     setCursorState({
       mode: CursorMode.Reaction,
       reaction,
@@ -110,6 +157,16 @@ function Live() {
     >
       <h1 className="text-5xl text-white">LiveBlocks Figma Clone</h1>
 
+      {reaction.map((r) => (
+        <FlyingReaction
+          key={r.timestamp.toString()}
+          x={r.point.x}
+          y={r.point.y}
+          timestamp={r.timestamp}
+          value={r.value}
+        />
+      ))}
+
       {cursor && (
         <CursorChat
           cursor={cursor}
@@ -120,7 +177,7 @@ function Live() {
       )}
 
       {cursorState.mode === CursorMode.ReactionSelector && (
-        <ReactionSelector setReaction={setReaction} />
+        <ReactionSelector setReaction={setReactions} />
       )}
 
       <LiveCursors others={others} />
