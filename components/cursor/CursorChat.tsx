@@ -51,7 +51,8 @@ const CursorChat = ({
               type="text"
               className="z-10 w-60 border-none bg-transparent
                text-white
-               placeholder-blue-300 outline-none autoFocus={true}"
+               placeholder-blue-300 outline-none"
+              autoFocus={true}
               onChange={handleChange}
               onKeyDown={handleKeyDown}
               placeholder={
